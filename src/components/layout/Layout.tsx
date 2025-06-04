@@ -1,20 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { supabase } from '../../utils/supabaseClient';
 
 const Layout: React.FC = () => {
-  const [userEmail, setUserEmail] = useState('');
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.email) {
-        setUserEmail(data.user.email);
-      }
-    });
-  }, []);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.reload();
@@ -27,19 +17,16 @@ const Layout: React.FC = () => {
         <Header />
         <main className="flex-1 overflow-y-auto p-6 relative">
           <Outlet />
-          {userEmail && (
-            <div className="absolute bottom-4 right-6 bg-gray-800 px-4 py-2 rounded shadow-md text-sm flex gap-4 items-center">
-              <span>{userEmail}</span>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
-              >
-                Logout
-              </button>
-            </div>
-          )}
         </main>
       </div>
+
+      {/* Fixed stylish Logout button in bottom-right */}
+      <button
+        onClick={handleLogout}
+        className="fixed bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full shadow-lg text-sm z-50"
+      >
+        Logout
+      </button>
     </div>
   );
 };
