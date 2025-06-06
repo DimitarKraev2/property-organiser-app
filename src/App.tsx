@@ -12,27 +12,37 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    // ✅ Step 1: Process OAuth redirect
-    const handleOAuthRedirect = async () => {
-      const { data, error } = await supabase.auth.exchangeCodeForSession();
-      if (error) console.error('OAuth session error:', error);
-    };
+    const handleAuth = async () => {
+      try {
+        const hash = window.location.hash;
+        const hasAuthCode = hash.includes('access_token') || hash.includes('code');
 
-    handleOAuthRedirect().finally(() => {
-      // ✅ Step 2: Check existing session
-      supabase.auth.getSession().then(({ data: { session } }) => {
+        // Step 1: Handle redirect after login only if needed
+        if (hasAuthCode) {
+          const { error } = await supabase.auth.exchangeCodeForSession();
+          if (error) {
+            console.error('OAuth exchange error:', error);
+          }
+        }
+
+        // Step 2: Get current session
+        const { data: { session } } = await supabase.auth.getSession();
         setLoggedIn(!!session);
         setSessionChecked(true);
-      });
-    });
 
-    // ✅ Step 3: Watch for login/logout changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(!!session);
-      setSessionChecked(true);
-    });
+        // Step 3: Listen for auth state changes
+        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+          setLoggedIn(!!session);
+        });
 
-    return () => listener.subscription.unsubscribe();
+        return () => listener.subscription.unsubscribe();
+      } catch (err) {
+        console.error('Unexpected error in auth flow:', err);
+        setSessionChecked(true); // still allow app to load
+      }
+    };
+
+    handleAuth();
   }, []);
 
   if (!sessionChecked) return null;
