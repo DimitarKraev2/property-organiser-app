@@ -47,7 +47,21 @@ const AddProperty: React.FC = () => {
       setUrlLoading(true);
       setUrlError(null);
       const data = await fetchPropertyFromUrl(urlInput);
-      setProperty((prev) => ({ ...prev, ...data }));
+      if (!data || !data.address || !data.price) {
+        throw new Error('Incomplete data from scraper');
+      }
+      setProperty((prev) => ({
+        ...prev,
+        address: data.address || '',
+        price: data.price || 0,
+        bedrooms: data.bedrooms || 0,
+        bathrooms: data.bathrooms || 0,
+        county: data.county || '',
+        imageUrl: data.imageUrl || '',
+        propertyType: data.propertyType || 'house',
+        status: 'active',
+        description: data.description || '',
+      }));
     } catch (error) {
       setUrlError('Failed to fetch property details.');
     } finally {

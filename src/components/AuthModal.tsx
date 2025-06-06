@@ -1,12 +1,22 @@
 import { useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function AuthModal() {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-  }, []);
+    const handleLogin = async () => {
+      const { data, error } = await supabase.auth.exchangeCodeForSession();
+      if (error) {
+        console.error('Login exchange error:', error.message);
+      } else {
+        navigate('/');
+      }
+    };
+
+    handleLogin();
+  }, [navigate]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center text-white z-50">

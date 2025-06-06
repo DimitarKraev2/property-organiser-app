@@ -12,11 +12,21 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setLoggedIn(!!session);
-      setSessionChecked(true);
+    // ✅ Step 1: Process OAuth redirect
+    const handleOAuthRedirect = async () => {
+      const { error } = await supabase.auth.getSessionFromUrl();
+      if (error) console.error('OAuth session error:', error);
+    };
+
+    handleOAuthRedirect().finally(() => {
+      // ✅ Step 2: Check existing session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setLoggedIn(!!session);
+        setSessionChecked(true);
+      });
     });
 
+    // ✅ Step 3: Watch for login/logout changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setLoggedIn(!!session);
       setSessionChecked(true);
