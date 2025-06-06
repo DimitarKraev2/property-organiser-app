@@ -1,65 +1,46 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/layout/Layout';
-import AddProperty from './pages/AddProperty';
-import Home from './pages/Home';
-import { PropertyProvider } from './context/PropertyContext';
 import { supabase } from './utils/supabaseClient';
+import PropertyManager from './components/PropertyManager';
 import AuthModal from './components/AuthModal';
 
 function App() {
-  const [sessionChecked, setSessionChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    const handleAuth = async () => {
+    const handleOAuthRedirect = async () => {
+      // Only run this once on initial OAuth redirect
       try {
-        const hash = window.location.hash;
-        const hasAuthCode = hash.includes('access_token') || hash.includes('code');
-
-        // Step 1: Handle redirect after login only if needed
-        if (hasAuthCode) {
-          const { error } = await supabase.auth.exchangeCodeForSession();
-          if (error) {
-            console.error('OAuth exchange error:', error);
-          }
-        }
-
-        // Step 2: Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        setLoggedIn(!!session);
-        setSessionChecked(true);
-
-        // Step 3: Listen for auth state changes
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-          setLoggedIn(!!session);
-        });
-
-        return () => listener.subscription.unsubscribe();
+        const { data, error } = await supabase.auth.exchangeCodeForSession();
+        if (error) console.error('OAuth error:', error);
+        else console.log('OAuth success, session:', data);
       } catch (err) {
-        console.error('Unexpected error in auth flow:', err);
-        setSessionChecked(true); // still allow app to load
+        console.error('OAuth exchange error:', err);
       }
     };
 
-    handleAuth();
+    handleOAuthRedirect().finally(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setLoggedIn(!!session);
+        setSessionChecked(true);
+      });
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+      setSessionChecked(true);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (!sessionChecked) return null;
-  if (!loggedIn) return <AuthModal />;
+  if (!sessionChecked) return <AuthModal />;
 
-  return (
-    <PropertyProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="add" element={<AddProperty />} />
-          </Route>
-        </Routes>
-      </Router>
-    </PropertyProvider>
-  );
+  return <PropertyManager />;
 }
 
 export default App;
