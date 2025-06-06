@@ -14,7 +14,7 @@ function App() {
   useEffect(() => {
     // ✅ Step 1: Process OAuth redirect
     const handleOAuthRedirect = async () => {
-      const { error } = await supabase.auth.getSessionFromUrl();
+      const { data, error } = await supabase.auth.exchangeCodeForSession();
       if (error) console.error('OAuth session error:', error);
     };
 
