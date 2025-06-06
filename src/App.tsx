@@ -8,38 +8,38 @@ function App() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    const handleOAuthRedirect = async () => {
-      // Only run this once on initial OAuth redirect
-      try {
-        const { data, error } = await supabase.auth.exchangeCodeForSession();
-        if (error) console.error('OAuth error:', error);
-        else console.log('OAuth success, session:', data);
-      } catch (err) {
-        console.error('OAuth exchange error:', err);
+    const checkSession = async () => {
+      // Step 1: Handle OAuth redirect (if there is one)
+      if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession();
+          if (error) {
+            console.error('OAuth error:', error);
+          } else {
+            console.log('OAuth session established:', data);
+          }
+        } catch (err) {
+          console.error('Exchange session error:', err);
+        }
       }
-    };
 
-    handleOAuthRedirect().finally(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setLoggedIn(!!session);
-        setSessionChecked(true);
-      });
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Step 2: Check existing session
+      const { data: { session } } = await supabase.auth.getSession();
       setLoggedIn(!!session);
       setSessionChecked(true);
-    });
 
-    return () => {
-      subscription.unsubscribe();
+      // Step 3: Listen for future login/logout changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setLoggedIn(!!session);
+      });
+
+      return () => subscription.unsubscribe();
     };
+
+    checkSession();
   }, []);
 
   if (!sessionChecked) return <AuthModal />;
-
   return <PropertyManager />;
 }
 
